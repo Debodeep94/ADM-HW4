@@ -1,6 +1,3 @@
-from collections import defaultdict
-
-
 n_chars = 64
 
 
@@ -34,11 +31,9 @@ def char_couting_sort(lst):
 
 
 def my_groupby(lst, i):
-    d = defaultdict(list)
-
+    d = {}
     for x in lst:
-        d[x[i]].append(x)
-
+        d.setdefault(x[i], []).append(x)
     return list(d.values())
 
 
