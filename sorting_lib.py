@@ -1,3 +1,7 @@
+from itertools import groupby
+from itertools import chain
+
+
 def counting_sort(A):
     k = max(A)
     n = len(A)
@@ -50,20 +54,61 @@ def list_counting_sort(A, j):
     return B
 
 
+def list_counting_sort2(A, j):
+    k = ord(z) - ord(A)
+    n = len(A)
+    B = [0 for i in range(n)]
+    C = [0 for i in range(k)]
+
+    for i in range(n):
+        C[ord(A[i][j])-96] += 1
+        # each element C[i] is equal to the number of i in the array A
+
+    for i in range(1, k):
+        C[i] += C[i-1]
+        # each C[i] is now equal to the number of elements in A equal or less than i
+
+    for i in range(n-1, -1, -1):
+        char = ord(A[i][j])-96
+        index = C[char]-1
+        B[index] = A[i]  # insert A[i] in the right position in B, given by C[i]-1
+        C[char] += -1  # decrease by one the number of elements equal or less than A[i]
+
+    return [list(g) for k, g in groupby(B, key=lambda x: x[j])]
+
+
 def alphabetical_sort(lst):
-    m = len(lst)
-    n = max([len(s) for s in lst])
+    # m = len(lst)
+    # n = max([len(s) for s in lst])
     int_lst = []
     for word in lst:
-        int_lst.append([(ord(c)-96) for c in word])
+        int_lst.append('0'.join([str(ord(c)-96) for c in word]))
+        int_lst = list(map(int, int_lst))
 
-    ordered_lst = list_counting_sort(int_lst, 0)
+    ordered_lst = counting_sort(int_lst)
 
     final = []
     for sub in ordered_lst:
-        final.append([chr(x+96) for x in sub])
+        tmp = str(sub).split('0')
+        final.append([chr(int(x)+96) for x in tmp])
 
     return [''.join(sub) for sub in final]
+
+
+def rec_alpha_sort(lst, j):
+    if len(lst)==1:
+        return lst
+
+    new_lst = list_counting_sort2(lst, j)
+
+    j += 1
+    final = []
+    for l in new_lst:
+        final.append(rec_alpha_sort(l, j))
+    
+    return list(chain.from_iterable(final))
+    
+
 
 
 if __name__ == "__main__":
@@ -76,8 +121,8 @@ if __name__ == "__main__":
     # ordered_alpha = alphabetical_couting_sort(lst)
     # print(*lst)
     # print(*ordered_alpha)
-    
-    string_lst = ['paolo', 'lorenzo', 'giovanni', 'emanuele', 'emanuela', 'jorginho', 'salvatore']
-    ordered_strings = alphabetical_sort(string_lst)
-    print(*string_lst)
+    string_lst = ['caoc', 'bcev', 'bcar']
+    string_lst2 = ['paolo', 'lorenzo', 'giovanni', 'emanuele', 'emanuela', 'jorginho', 'salvatore']
+    ordered_strings = rec_alpha_sort(string_lst2, 0)
+    print(*string_lst2)
     print(*ordered_strings)
