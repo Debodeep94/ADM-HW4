@@ -55,13 +55,18 @@ def list_counting_sort(A, j):
 
 
 def list_counting_sort2(A, j):
-    k = ord(z) - ord(A)
+    k = ord('z') - ord('A')
     n = len(A)
     B = [0 for i in range(n)]
-    C = [0 for i in range(k)]
+    C = [0 for i in range(k+1)]
 
     for i in range(n):
-        C[ord(A[i][j])-96] += 1
+        if A[i] == ' ':
+            index = 0
+        else:
+            index = ord(A[i][j])-64
+        print(index)
+        C[index] += 1
         # each element C[i] is equal to the number of i in the array A
 
     for i in range(1, k):
@@ -69,7 +74,7 @@ def list_counting_sort2(A, j):
         # each C[i] is now equal to the number of elements in A equal or less than i
 
     for i in range(n-1, -1, -1):
-        char = ord(A[i][j])-96
+        char = ord(A[i][j])-64
         index = C[char]-1
         B[index] = A[i]  # insert A[i] in the right position in B, given by C[i]-1
         C[char] += -1  # decrease by one the number of elements equal or less than A[i]
@@ -122,7 +127,7 @@ if __name__ == "__main__":
     # print(*lst)
     # print(*ordered_alpha)
     string_lst = ['caoc', 'bcev', 'bcar']
-    string_lst2 = ['paolo', 'lorenzo', 'giovanni', 'emanuele', 'emanuela', 'jorginho', 'salvatore']
+    string_lst2 = ['paolo', 'lore nzo', 'giovanni', 'emanu ele', 'emanu ela', 'jorgi nho', 'salvatore']
     ordered_strings = rec_alpha_sort(string_lst2, 0)
     print(*string_lst2)
     print(*ordered_strings)
