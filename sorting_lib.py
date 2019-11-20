@@ -1,5 +1,3 @@
-from itertools import groupby
-from itertools import chain
 from collections import defaultdict
 
 
@@ -83,7 +81,7 @@ def rec_alphabetical_sort(lst, j):
     for l in new_lst:
         final.append(rec_alphabetical_sort(l, j))
     
-    return list(chain.from_iterable(final))  # flatten the list of lists
+    return [word for sublist in final for word in sublist]  # flatten the list of lists
     
 
 
