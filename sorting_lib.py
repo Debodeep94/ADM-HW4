@@ -112,17 +112,33 @@ def strings_counting_sort(A, j):
 
 
 def rec_alphabetical_sort(lst, j):
-    if len(lst)==1 or len(set(lst))<=1:
+    """
+    This is a recursive function which takes in input a list of strings
+    and an integer and returns the sorted list.
+    :param lst: list of strings to sort
+    :param j: integer
+    :return: sorted list of strings
+    """
+    if len(set(lst))<=1: 
+        # if the list contains one or less strings, or the strings are all equal
         return lst
 
-    new_lst = strings_counting_sort(lst, j)
+    # sort the list using the imperative function.
+    # the list will be sorted based on the j_th char of each string.
+    sorted_lst = strings_counting_sort(lst, j)
+    # the list returned is a grouped list where each list
+    # contains string with the same prefix until the j_th char.
 
+    # now the function will recurr over each group of strings (sublist)
+    # and will append each result to a final list, which will contain
+    # grouped lists.
     j += 1
     final = []
-    for l in new_lst:
+    for l in sorted_lst:
         final.append(rec_alphabetical_sort(l, j))
     
-    return [word for sublist in final for word in sublist]  # flatten the list of lists
+    # flatten the list of lists and return it
+    return [word for sublist in final for word in sublist]
 
 
 if __name__ == "__main__":
