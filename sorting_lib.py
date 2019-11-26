@@ -99,6 +99,8 @@ def strings_counting_sort(A, j):
     B = [0 for i in range(n)]
     for i in range(n-1, -1, -1):
         char = ord(A[i][j])-diff
+        if A[i][j] == ' ':  # the *space* has index 0 (arbitrary choice)
+            char = 0
         index = C[char]-1
         B[index] = A[i]  # insert A[i] in the right position in B, given by C[i]-1
         C[char] += -1  # decrease by one the number of elements equal or less than A[i]
@@ -155,7 +157,7 @@ if __name__ == "__main__":
     l1 = ['paolo', 'lorenzo', 'emanu ele', 'emanu ela', 'paolo', 'paol']
     l = ['a', 'ab', 'a', 'cd', 'cc']
     es1 = ['As', 'Aster', 'Astrolabe', 'Astronomy', 'Astrophysics', 'At', 'Ataman', 'Attack', 'Baa']
-    es2 = ['gtyGpm', 'xulrMj', 'YmPnVb', 'lTpVlh', 'eJCnwD', 'esZbhw', 'MtCMJH', 'rkClQP', 'dPbCuh', 'gfKxzk', 'cvBxcy', 'vxEoKk', 'Tdzpcn', 'ymwDWn', 'vHEyvc', 'JeihfT']
-    ordered_strings = rec_alphabetical_sort(l1, 0)
-    print(*l1)
+    es2 = ['gtyGpm', 'xulrMj', 'YmPnVb', 'lTp Vlh', 'eJCnwD', 'esZbhw', 'MtCMJH', 'rkClQP', 'dPbCuh', 'gfKxzk', 'cvBxcy', 'vxEoKk', 'Tdzpcn', 'ymwDWn', 'vHEyvc', 'JeihfT']
+    ordered_strings = rec_alphabetical_sort(es2, 0)
+    print(*es2)
     print(*ordered_strings)
