@@ -67,7 +67,7 @@ def strings_counting_sort(A, j):
     :param A: list of strings to order
     :return: list of lists, ordered by the j_th item
     """
-    k = ord('z') - ord('A')  # number of possible chars at position j
+    k = ord('z') - ord('A') + 1  # number of possible chars at position j
     n = len(A)
     C = [0 for i in range(k+1)]  # list to store the number of strings with the same char in position j
     to_return = []  # this list will store the strings whose length is equal or smaller than j
@@ -91,7 +91,7 @@ def strings_counting_sort(A, j):
     for word in to_return:
         A.remove(word)
 
-    for i in range(1, k):
+    for i in range(1, k+1):
         C[i] += C[i-1]
         # each C[i] is now equal to the number of elements in A equal or less than i
 
@@ -155,7 +155,7 @@ if __name__ == "__main__":
     l1 = ['paolo', 'lorenzo', 'emanu ele', 'emanu ela', 'paolo', 'paol']
     l = ['a', 'ab', 'a', 'cd', 'cc']
     es1 = ['As', 'Aster', 'Astrolabe', 'Astronomy', 'Astrophysics', 'At', 'Ataman', 'Attack', 'Baa']
-    es2 = ['Oak', 'Oak Hill', 'Oak Ridge', 'Oakley Park', 'Oakley River']
-    ordered_strings = rec_alphabetical_sort(es2, 0)
-    print(*es2)
+    es2 = ['gtyGpm', 'xulrMj', 'YmPnVb', 'lTpVlh', 'eJCnwD', 'esZbhw', 'MtCMJH', 'rkClQP', 'dPbCuh', 'gfKxzk', 'cvBxcy', 'vxEoKk', 'Tdzpcn', 'ymwDWn', 'vHEyvc', 'JeihfT']
+    ordered_strings = rec_alphabetical_sort(l1, 0)
+    print(*l1)
     print(*ordered_strings)
