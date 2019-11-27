@@ -1,4 +1,6 @@
 import numpy as np
+import math
+import pandas as np
 
 
 class BloomFilter(object):
@@ -18,8 +20,35 @@ class BloomFilter(object):
         k = (m/n)*np.log(2)
         return int(k)
 
+    def hash_mul(self, s, seed):
+        m = self.array_len
+        pwr = 1
+        key = 0
+        for _, character in enumerate(s):
+            # Using Horner's method to convert the string to an integer
+            key = (key+ (ord(character)*pwr)%m ) %m
+            pwr = (pwr*128)%m
+        A = 0.618 / seed
+        h = math.floor(m*((key*A)%1))
+        return int(h)
+
     def add(self, item):
-        return None
+        for i in range(1, self.hash_count + 1):
+            index = self.hash_mul(item, i)
+            self.array[index] = 1
 
     def exists(self, item):
-        return None
+        exists = True
+        for i in range(1, self.hash_count + 1):
+            index = self.hash_mul(item, i)
+            exists = (self.array[index] == 1)
+            if not exists:
+                break
+        return exists
+
+    def describe(self):
+        print("False-positive probability: ", self.fp_prob)
+        print("Number of items: ", self.n_items)
+        print("Array length: ", self.array_len)
+        print("Number of hash functions needed: ", self.hash_count)
+
