@@ -1,5 +1,5 @@
 import math
-from bitarray import bitarray
+import numpy as np
 import time
 
 
@@ -10,8 +10,7 @@ class BloomFilter(object):
         self.n_items = n_items
         self.array_len = self.get_array_len(self.n_items, self.fp_prob)
         self.hash_count = self.get_hash_count(self.n_items, self.array_len)
-        self.array = bitarray(self.array_len)
-        self.array.setall(0)
+        self.array = np.zeros(self.array_len)
 
     def get_array_len(self, n, p):
         m = -(n*math.log(p))/(math.log(2)**2)
@@ -21,21 +20,21 @@ class BloomFilter(object):
         k = (m/n)*math.log(2)
         return int(k)+1
 
-    def hash_mul(self, s, seed):
-        m = self.array_len
-        idx = seed%len(s)
-        s = list(s)
-        s[idx] = chr(ord(s[idx]) + seed)
-        s = ''.join(s)
-        pwr = 1
-        key = 0
-        for _, character in enumerate(s):
-            # Using Horner's method to convert the string to an integer
-            key = (key + (ord(character)*pwr)%m ) %m
-            pwr = (pwr*128)%m
-        A = (math.sqrt(5)-1) / 2
-        h = math.floor(m*((key*A)%1))
-        return h
+    # def hash_mul(self, s, seed):
+    #     m = self.array_len
+    #     idx = seed%len(s)
+    #     s = list(s)
+    #     s[idx] = chr(ord(s[idx]) + seed)
+    #     s = ''.join(s)
+    #     pwr = 1
+    #     key = 0
+    #     for _, character in enumerate(s):
+    #         # Using Horner's method to convert the string to an integer
+    #         key = (key + (ord(character)*pwr)%m ) %m
+    #         pwr = (pwr*128)%m
+    #     A = (math.sqrt(5)-1) / 2
+    #     h = math.floor(m*((key*A)%1))
+    #     return h
 
     def hash_base(self, s, seed):
         g = 31
@@ -54,7 +53,7 @@ class BloomFilter(object):
     def exists(self, item):
         for i in range(1, self.hash_count + 1):
             index = self.hash_base(item, i)
-            if self.array[index] == False:
+            if self.array[index] == 0:
                 return False
         return True
 
@@ -67,19 +66,28 @@ class BloomFilter(object):
 
 def exec_bloom_filter(BF, passwords1, passwords2):
     start = time.time()
+    l1 = len(passwords1)
+    i = 0
     for pwd in passwords1:
+        print('% .2f' %(i*100/l1))
         BF.add(pwd)
+        i += 1
 
     duplicates = []
+    i = 0
+    l2 = len(passwords2)
     for pwd in passwords2:
+        print('% .2f' %(i*100/l2))
         if BF.exists(pwd):
             duplicates.append(pwd)
+        i += 1
         
     end = time.time()
     print('Number of hash function used: ', BF.hash_count) 
     print('Number of duplicates detected: ', len(duplicates)) 
     print('Probability of false positives: (%)', BF.fp_prob*100) 
     print('Execution time: ', int(end-start), ' seconds')
+    np.savetxt('array.txt', BF.array, delimiter=',')
     return duplicates
 
 
@@ -93,13 +101,14 @@ if __name__ == "__main__":
     with open(filepath2, 'r') as f:
         passwords2 = f.read().splitlines()
 
-    n = len(passwords1)
+    # n = len(passwords1)
+    n = 30000
     BF = BloomFilter(n, 0.001)
     BF.describe()
     print('\n')
 
-    duplicates = exec_bloom_filter(BF, passwords1, passwords2)
+    duplicates = exec_bloom_filter(BF, passwords1[:30000], passwords2[:3000])
 
-    with open('duplicates.txt', 'w') as f:
+    with open('duplicates1.txt', 'w') as f:
         for pwd in duplicates:
             f.write("%s\n" % pwd)
