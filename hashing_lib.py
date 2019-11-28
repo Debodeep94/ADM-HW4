@@ -20,23 +20,7 @@ class BloomFilter(object):
         k = (m/n)*math.log(2)
         return int(k)+1
 
-    # def hash_mul(self, s, seed):
-    #     m = self.array_len
-    #     idx = seed%len(s)
-    #     s = list(s)
-    #     s[idx] = chr(ord(s[idx]) + seed)
-    #     s = ''.join(s)
-    #     pwr = 1
-    #     key = 0
-    #     for _, character in enumerate(s):
-    #         # Using Horner's method to convert the string to an integer
-    #         key = (key + (ord(character)*pwr)%m ) %m
-    #         pwr = (pwr*128)%m
-    #     A = (math.sqrt(5)-1) / 2
-    #     h = math.floor(m*((key*A)%1))
-    #     return h
-
-    def hash_base(self, s, seed):
+    def hash(self, s, seed):
         g = 31
         res = 0
 
@@ -47,12 +31,12 @@ class BloomFilter(object):
 
     def add(self, item):
         for i in range(self.hash_count):
-            index = self.hash_base(item, i)
+            index = self.hash(item, i)
             self.array[index] = 1
 
     def exists(self, item):
         for i in range(1, self.hash_count + 1):
-            index = self.hash_base(item, i)
+            index = self.hash(item, i)
             if self.array[index] == 0:
                 return False
         return True
