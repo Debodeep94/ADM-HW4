@@ -101,13 +101,12 @@ if __name__ == "__main__":
     with open(filepath2, 'r') as f:
         passwords2 = f.read().splitlines()
 
-    # n = len(passwords1)
-    n = 30000
+    n = len(passwords1)
     BF = BloomFilter(n, 0.001)
     BF.describe()
     print('\n')
 
-    duplicates = exec_bloom_filter(BF, passwords1[:30000], passwords2[:3000])
+    duplicates = exec_bloom_filter(BF, passwords1, passwords2)
 
     with open('duplicates1.txt', 'w') as f:
         for pwd in duplicates:
