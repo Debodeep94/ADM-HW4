@@ -2,7 +2,7 @@ import math
 import numpy as np
 import time
 from threading import Thread
-from multiprocessing import cpu_count
+from multiprocessing import Process, cpu_count
 
 
 class BloomFilter(object):
@@ -109,8 +109,8 @@ def multithread_add(BF, passwords, n_threads):
 
     for i in range(n_threads):
         threads.append(
-            Thread(name='Thread-' + str(i),
-            target=add, args=[BF, chunks[i]])
+            Process(name='Thread-' + str(i),
+            target=add, args=(BF, chunks[i]))
         )
 
     # start each thread
@@ -136,8 +136,8 @@ def multithread_check(BF, passwords, n_threads):
 
     for i in range(n_threads):
         threads.append(
-            Thread(name='Thread-' + str(i),
-            target=check, args=[BF, chunks[i], partial_duplicates[i]])
+            Process(name='Thread-' + str(i),
+            target=check, args=(BF, chunks[i], partial_duplicates[i]))
         )
 
     # start each thread
