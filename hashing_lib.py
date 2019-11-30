@@ -54,18 +54,16 @@ class BloomFilter(object):
 
 def exec_bloom_filter(BF, passwords1, passwords2):
     start = time.time()
-    l1 = len(passwords1)
     i = 0
     for pwd in passwords1:
-        print('% .2f' %(i*100/l1))
         BF.add(pwd)
+        print(i)
         i += 1
 
     duplicates = []
     i = 0
-    l2 = len(passwords2)
     for pwd in passwords2:
-        print('% .2f' %(i*100/l2))
+        print(i)
         if BF.exists(pwd):
             duplicates.append(pwd)
         i += 1
