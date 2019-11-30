@@ -7,25 +7,38 @@ import os
 
 
 class BloomFilter(object):
+    """
+    This class contains the variable and the methods needed for the implementation and use
+    of a Bloom Filter
+    """
      
     def __init__(self, n_items, fp_prob, hash_count = 0):
-        self.fp_prob = fp_prob
-        self.n_items = n_items
-        self.array_len = self.get_array_len(self.n_items, self.fp_prob)
-        self.hash_count = hash_count
+        self.fp_prob = fp_prob  # false positive probability
+        self.n_items = n_items  # number of items to add to the filter
+        self.array_len = self.get_array_len(self.n_items, self.fp_prob)  # length of the array
+        self.hash_count = hash_count  # number of hash functions needed
         if hash_count == 0:
             self.hash_count = self.get_hash_count(self.n_items, self.array_len)
-        self.array = np.zeros(self.array_len)
+        self.array = np.zeros(self.array_len)  # array initialized to all zeros
 
     def get_array_len(self, n, p):
+        """
+        Calculate the length of the array needed with n items and a required false positive prob p.
+        """
         m = -(n*math.log(p))/(math.log(2)**2)
         return int(m)
 
     def get_hash_count(self, n, m):
+        """
+        Calculate the number of hash functions needed with n items to achieve p false positive prob.
+        """
         k = (m/n)*math.log(2)
         return int(k)
 
     def hash(self, s, seed):
+        """
+        Given a string s and an int seed, calculate the hash code of the string using the DJB2-H method.
+        """
         g = 31
         res = 1
 
@@ -34,19 +47,28 @@ class BloomFilter(object):
 
         return (res % self.array_len)
 
-    def add(self, item):
+    def add(self, s):
+        """
+        Add a string s to the Bloom filter.
+        """
         for i in range(1, self.hash_count + 1):
-            index = self.hash(item, i)
-            self.array[index] = 1
+            index = self.hash(s, i)  # get hash value
+            self.array[index] = 1  # set the corresponding index of the array to 1
 
-    def exists(self, item):
+    def exists(self, s):
+        """
+        Check if the filter contains a string s.
+        """
         for i in range(1, self.hash_count + 1):
-            index = self.hash(item, i)
+            index = self.hash(s, i)
             if self.array[index] == 0:
                 return False
         return True
 
     def describe(self):
+        """
+        Print the main info about the filter.
+        """
         print("False-positive probability (%): ", self.fp_prob*100)
         print("Number of items: ", self.n_items)
         print("Array length: ", self.array_len)
@@ -54,7 +76,13 @@ class BloomFilter(object):
 
 
 def exec_bloom_filter(BF, passwords1, passwords2):
+    """
+    ADD the passwords in passwords1 to the filter and check how many passwords
+    from passwords2 are duplicates.
+    """
     start = time.time()
+
+    # add the passwords from passwords1
     i = 0
     for pwd in passwords1:
         BF.add(pwd)
@@ -62,6 +90,7 @@ def exec_bloom_filter(BF, passwords1, passwords2):
         i += 1
 
     duplicates = []
+    # check the passwords in passwords2
     i = 0
     for pwd in passwords2:
         print(i)
@@ -74,6 +103,8 @@ def exec_bloom_filter(BF, passwords1, passwords2):
     print('Number of duplicates detected: ', len(duplicates)) 
     print('Probability of false positives: (%)', BF.fp_prob*100) 
     print('Execution time: ', int(end-start), ' seconds')
+    
+    # return the list of duplicates for eventually saving them in a file
     return duplicates
 
 
@@ -179,6 +210,7 @@ def add_wrapper(BF, fpath, chunkStart, chunkSize):
         passwords = f.read(chunkSize).splitlines()
         for pwd in passwords:
             BF.add(pwd)
+    return BF.array
 
 
 def check_wrapper(BF, fpath, chunkStart, chunkSize):
@@ -217,8 +249,9 @@ def multiprocess_add(BF, filepath):
 
     #wait for all jobs to finish
     for job in jobs:
-        job.get()
+        BF.array += job.get()
 
+    BF.array = (BF.array > 0).astype(int)
     #clean up
     pool.close()
 
