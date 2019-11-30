@@ -2,7 +2,8 @@ import math
 import numpy as np
 import time
 from threading import Thread
-from multiprocessing import Process, cpu_count
+import multiprocessing as mp
+import os
 
 
 class BloomFilter(object):
@@ -73,7 +74,6 @@ def exec_bloom_filter(BF, passwords1, passwords2):
     print('Number of duplicates detected: ', len(duplicates)) 
     print('Probability of false positives: (%)', BF.fp_prob*100) 
     print('Execution time: ', int(end-start), ' seconds')
-    np.savetxt('array.txt', BF.array, delimiter=',')
     return duplicates
 
 
@@ -107,8 +107,8 @@ def multithread_add(BF, passwords, n_threads):
 
     for i in range(n_threads):
         threads.append(
-            Process(name='Thread-' + str(i),
-            target=add, args=(BF, chunks[i]))
+            Thread(name='Thread-' + str(i),
+            target=add, args=[BF, chunks[i]])
         )
 
     # start each thread
@@ -134,8 +134,8 @@ def multithread_check(BF, passwords, n_threads):
 
     for i in range(n_threads):
         threads.append(
-            Process(name='Thread-' + str(i),
-            target=check, args=(BF, chunks[i], partial_duplicates[i]))
+            Thread(name='Thread-' + str(i),
+            target=check, args=[BF, chunks[i], partial_duplicates[i]])
         )
 
     # start each thread
@@ -173,24 +173,107 @@ def multithread_exec_filter(BF, passwords1, passwords2_path, n_threads):
     return (duplicates, int(end-start))
 
 
+def add_wrapper(BF, fpath, chunkStart, chunkSize):
+    with open(fpath) as f:
+        f.seek(chunkStart)
+        passwords = f.read(chunkSize).splitlines()
+        for pwd in passwords:
+            BF.add(pwd)
+
+
+def check_wrapper(BF, fpath, chunkStart, chunkSize):
+    with open(fpath) as f:
+        duplicates = 0
+        f.seek(chunkStart)
+        passwords = f.read(chunkSize).splitlines()
+        for pwd in passwords:
+            if BF.exists(pwd):
+                duplicates += 1
+        return duplicates
+
+
+def chunkify(fpath,size=1024*1024):
+    fileEnd = os.path.getsize(fpath)
+    with open(fpath,'rb') as f:
+        chunkEnd = f.tell()
+        while True:
+            chunkStart = chunkEnd
+            f.seek(size,1)
+            f.readline()
+            chunkEnd = f.tell()
+            yield chunkStart, chunkEnd - chunkStart
+            if chunkEnd > fileEnd:
+                break
+
+
+def multiprocess_add(BF, filepath):
+    #init objects
+    pool = mp.Pool(mp.cpu_count())
+    jobs = []
+
+    #create jobs
+    for chunkStart,chunkSize in chunkify(filepath):
+        jobs.append( pool.apply_async(add_wrapper,(BF, filepath, chunkStart,chunkSize)) )
+
+    #wait for all jobs to finish
+    for job in jobs:
+        job.get()
+
+    #clean up
+    pool.close()
+
+
+def multiprocess_check(BF, filepath):
+    #init objects
+    pool = mp.Pool(mp.cpu_count())
+    jobs = []
+    duplicates = 0
+    #create jobs
+    for chunkStart,chunkSize in chunkify(filepath):
+        jobs.append( pool.apply_async(check_wrapper,(BF, filepath, chunkStart, chunkSize)) )
+
+    #wait for all jobs to finish
+    for job in jobs:
+        duplicates += job.get()
+
+
+    #clean up
+    pool.close()
+    return duplicates
+
+
 if __name__ == "__main__":
 
-    passwords1_path = r"data\passwords\passwords1.txt"
-    passwords2_path = r"data\passwords\passwords2.txt"
+    passwords1_path = r"data/passwords/passwords1.txt"
+    passwords2_path = r"data/passwords/passwords2.txt"
+    p1_test = "data/passwords/p1_test.txt"
+    p2_test = "data/passwords/p2_test.txt"
 
-    print("Reading passwords1")
-    with open(passwords1_path, 'r') as f:
-        passwords1 = f.read().splitlines()
+    # print("Reading passwords1")
+    # with open(p1_test, 'r') as f:
+    #     passwords1 = f.read().splitlines()
+
+    # print("Reading passwords2")
+    # with open(p2_test, 'r') as f:
+    #     passwords2 = f.read().splitlines()
 
     print("Initializing Bloom filter\n")
-    n = len(passwords1)
+    n = 60000
     BF = BloomFilter(n, 0.00001, 11)
     BF.describe()
     print('\n')
 
     # duplicates = exec_bloom_filter(BF, passwords1, passwords2)
-    n_threads = 1
-    (duplicates, seconds) = multithread_exec_filter(BF, passwords1, passwords2_path, n_threads)
+    # n_threads = 1
+    # (duplicates, seconds) = multithread_exec_filter(BF, passwords1, passwords2_path, n_threads)
+
+    start = time.time()
+    print("ADD process started")
+    multiprocess_add(BF, p1_test)
+    print("\nCHECK process started")
+    duplicates = multiprocess_check(BF, p2_test)
+    end = time.time()
+    seconds = int(end-start)
 
     print('\nNumber of hash function used: ', BF.hash_count) 
     print('Number of duplicates detected: ', duplicates) 
