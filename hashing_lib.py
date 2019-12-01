@@ -1,8 +1,6 @@
 import math
 import numpy as np
 import time
-import multiprocessing as mp
-import os
 
 
 class BloomFilter(object):
@@ -74,229 +72,37 @@ class BloomFilter(object):
         print("Number of hash functions: ", self.hash_count)
 
 
-def exec_bloom_filter1(BF, passwords1, passwords2):
-    """
-    ADD the passwords in passwords1 to the filter and check how many passwords
-    from passwords2 are duplicates.
-    """
-    start = time.time()
-
-    # add the passwords from passwords1
-    i = 0
-    for pwd in passwords1:
-        BF.add(pwd)
-        print(i)
-        i += 1
-
-    duplicates = []
-    # check the passwords in passwords2
-    i = 0
-    for pwd in passwords2:
-        print(i)
-        if BF.exists(pwd):
-            duplicates.append(pwd)
-        i += 1
-        
-    end = time.time()
-    print('Number of hash function used: ', BF.hash_count) 
-    print('Number of duplicates detected: ', len(duplicates)) 
-    print('Probability of false positives: (%)', BF.fp_prob*100) 
-    print('Execution time: ', int(end-start), ' seconds')
-    
-    # return the list of duplicates for eventually saving them in a file
-    return duplicates
-
-
-def add(BF, passwords):
-        i = 0
-        for pwd in passwords:
-            BF.add(pwd)
-            print(i)
-            i += 1
-        return BF.array
-
-
-def check(BF, passwords):
-    duplicates = 0
-    # check the passwords in passwords2
-    for pwd in passwords:
-        if BF.exists(pwd):
-            duplicates += 1
-    return duplicates
-
-
 def exec_bloom_filter(BF, passwords1_path, passwords2_path):
     """
     ADD the passwords in passwords1 to the filter and check how many passwords
     from passwords2 are duplicates.
     """
     start = time.time()
-    
-    n_cpu = 3
-    pool = mp.Pool(n_cpu)
-    jobs = []
-    
-    l_chunks = 30000 // n_cpu
-    chunks = []
-    
-    with open(passwords1_path, 'r') as f:
-        chunk = []
-        i = 0
-        for line in f:
-            chunk.append(line)
-            if i==l_chunks:
-                chunks.append(chunk)
 
-    chunks = [passwords1[i:i + l_chunks] for i in range(0, 30000, l_chunks)]
-
-    if len(chunks) > n_cpu:
-        chunks[-2] += chunks[-1]
-        del chunks[-1]
-    
     # add the passwords from passwords1
-    print("ADDING the passwords to the filter")
-    # create jobs
-    for chunk in chunks:
-        jobs.append( pool.apply_async(add,(BF, chunk)) )
-
-    # wait for all jobs to finish
-    for job in jobs:
-        BF.array += job.get()  # add the result to the final array
-
-    BF.array = (BF.array > 0).astype(int)  # convert the values of the array in 0 and 1 's
-
-    # clean up the pool
-    pool.close()
-    print("FINISHED adding passwords\n")
+    with open(passwords1_path, 'r') as passwords1:
+        i = 0
+        for pwd in passwords1:
+            BF.add(pwd)
+            if i%1000000 == 0:
+                print(i)
+            i += 1
 
     duplicates = 0
     # check the passwords in passwords2
-    l_chunks = len(passwords2) // n_cpu
-    chunks = [passwords2[i:i + l_chunks] for i in range(0, len(passwords2), l_chunks)]
-
-    if len(chunks) > n_cpu:
-        chunks[-2] += chunks[-1]
-        del chunks[-1]
-    
-    print("CHECKING duplicates")
-    # create jobs
-    for chunk in chunks:
-        jobs.append( pool.apply_async(check,(BF, chunk)) )
-    # wait for all jobs to finish
-    for job in jobs:
-        duplicates += job.get()
-
-    # clean up the pool
-    pool.close()
-    
+    with open(passwords2_path, 'r') as passwords2:
+        i = 0
+        for pwd in passwords2:
+            if i%1000000 == 0:
+                print(i)
+            if BF.exists(pwd):
+                duplicates += 1
+            i += 1
+        
     end = time.time()
     
     # return the list of duplicates for eventually saving them in a file
     return (duplicates, int(end-start))
-
-
-################ Multiprocessing section ####################
-
-def add_wrapper(BF, fpath, chunkStart, chunkSize):
-    """
-    ADD to the filter the passwords contained in the portion of file
-    between chunkStart and (chunkStart + chunkSize).
-    Returns the array that will be added to the final one in the BloomFilter,
-    given the fact the this function gets executed in multiprocess.
-    """
-    with open(fpath) as f:
-        f.seek(chunkStart)  # start reading the file from chunkStart
-        passwords = f.read(chunkSize).splitlines()  # read until chunkSize
-        for pwd in passwords:
-            # add the passwords to the filter
-            BF.add(pwd)
-    return BF.array
-
-
-def check_wrapper(BF, fpath, chunkStart, chunkSize):
-    """
-    CHECK the presence in the Bloom Filter of the passwords contained in the portion of file
-    between chunkStart and (chunkStart + chunkSize).
-    Returns the number of duplicates found that will be added to the final number of duplicates,
-    given the fact the this function gets executed in multiprocess.
-    """
-    with open(fpath) as f:
-        duplicates = 0
-        f.seek(chunkStart)  # start reading the file from chunkStart
-        passwords = f.read(chunkSize).splitlines()  # read until chunkSize
-        for pwd in passwords:
-            # check how many passwords are duplicates
-            if BF.exists(pwd):
-                duplicates += 1
-        return duplicates
-
-
-def chunkify(fpath,size=1024*1024):
-    """
-    This function subdivides the total length of the input file into
-    chucks, where chunkStart is the position of the first byte of the chunk
-    and (chunkEnd - chunkStart) is the number of bytes to include in the chunk.
-    Each time returns a tuple with the yield expression so that the function
-    can continue it's course.
-    """
-    fileEnd = os.path.getsize(fpath)
-    with open(fpath,'rb') as f:
-        chunkEnd = f.tell()
-        while True:
-            chunkStart = chunkEnd
-            f.seek(size,1)
-            f.readline()
-            chunkEnd = f.tell()
-            yield chunkStart, chunkEnd - chunkStart
-            if chunkEnd > fileEnd:
-                break
-
-
-def multiprocess_add(BF, filepath):
-    """
-    Execute the ADDITION of the passwords from the file to the filter by subdividing the task
-    in multiple processes.
-    """
-    # init objects
-    pool = mp.Pool(mp.cpu_count())
-    jobs = []
-
-    # create jobs
-    for chunkStart,chunkSize in chunkify(filepath):
-        jobs.append( pool.apply_async(add_wrapper,(BF, filepath, chunkStart,chunkSize)) )
-
-    # wait for all jobs to finish
-    for job in jobs:
-        BF.array += job.get()  # add the result to the final array
-
-    BF.array = (BF.array > 0).astype(int)  # convert the values of the array in 0 and 1 's
-
-    # clean up the pool
-    pool.close()
-
-
-def multiprocess_check(BF, filepath):
-    """
-    CHECK the number of duplicates in the file passwords2 respect to the filter 
-    by subdividing the task in multiple processes.
-    """
-    # init objects
-    pool = mp.Pool(mp.cpu_count())
-    jobs = []
-    duplicates = 0
-    # create jobs
-    for chunkStart,chunkSize in chunkify(filepath):
-        jobs.append( pool.apply_async(check_wrapper,(BF, filepath, chunkStart, chunkSize)) )
-
-    # wait for all jobs to finish
-    for job in jobs:
-        duplicates += job.get()
-
-
-    # clean up the pool
-    pool.close()
-
-    return duplicates
 
 
 if __name__ == "__main__":
@@ -304,38 +110,23 @@ if __name__ == "__main__":
     passwords1_path = r"data/passwords/passwords1.txt"
     passwords2_path = r"data/passwords/passwords2.txt"
 
-    print("Reading passwords1")
-    with open(passwords1_path, 'r') as f:
-        passwords1 = f.read().splitlines()
-
-    print("Reading passwords2")
-    with open(passwords2_path, 'r') as f:
-        passwords2 = f.read().splitlines()
+    # calculate the number of passwords to add
+    print("Calculating the number of passwords to add to the filter")
+    n = 0
+    with open(passwords1_path, 'r') as passwords1:
+        for pwd in passwords1:
+            n += 1
+    n
 
     # Initializing the Bloom filter
     print("Initializing Bloom filter\n")
-    n = 100000000
-    BF = BloomFilter(n, 0.001, 9)
+    BF = BloomFilter(n, 0.0001, 11)
     BF.describe()
     print('\n')
 
-    # duplicates = exec_bloom_filter(BF, passwords1, passwords2)
-
-    # start = time.time()
-    # print("ADD process started")
-    # multiprocess_add(BF, passwords1_path)
-    # print("\nCHECK process started")
-    # duplicates = multiprocess_check(BF, passwords2_path)
-    # end = time.time()
-    # seconds = int(end-start)
-
-    (duplicates, seconds) = exec_bloom_filter(BF, passwords1[:30000], passwords2[:10000])
+    (duplicates, seconds) = exec_bloom_filter(BF, passwords1_path, passwords2_path)
 
     print('\nNumber of hash function used: ', BF.hash_count) 
     print('Number of duplicates detected: ', duplicates) 
     print('Probability of false positives: (%)', BF.fp_prob*100) 
     print('Execution time: ', seconds, ' seconds')
-
-    # with open('duplicates1.txt', 'w') as f:
-    #     for pwd in duplicates:
-    #         f.write("%s\n" % pwd)
