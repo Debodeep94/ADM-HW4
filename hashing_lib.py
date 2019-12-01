@@ -74,7 +74,7 @@ class BloomFilter(object):
         print("Number of hash functions: ", self.hash_count)
 
 
-def exec_bloom_filter(BF, passwords1, passwords2):
+def exec_bloom_filter1(BF, passwords1, passwords2):
     """
     ADD the passwords in passwords1 to the filter and check how many passwords
     from passwords2 are duplicates.
@@ -105,6 +105,94 @@ def exec_bloom_filter(BF, passwords1, passwords2):
     
     # return the list of duplicates for eventually saving them in a file
     return duplicates
+
+
+def add(BF, passwords):
+        i = 0
+        for pwd in passwords:
+            BF.add(pwd)
+            print(i)
+            i += 1
+        return BF.array
+
+
+def check(BF, passwords):
+    duplicates = 0
+    # check the passwords in passwords2
+    for pwd in passwords:
+        if BF.exists(pwd):
+            duplicates += 1
+    return duplicates
+
+
+def exec_bloom_filter(BF, passwords1_path, passwords2_path):
+    """
+    ADD the passwords in passwords1 to the filter and check how many passwords
+    from passwords2 are duplicates.
+    """
+    start = time.time()
+    
+    n_cpu = 3
+    pool = mp.Pool(n_cpu)
+    jobs = []
+    
+    l_chunks = 30000 // n_cpu
+    chunks = []
+    
+    with open(passwords1_path, 'r') as f:
+        chunk = []
+        i = 0
+        for line in f:
+            chunk.append(line)
+            if i==l_chunks:
+                chunks.append(chunk)
+
+    chunks = [passwords1[i:i + l_chunks] for i in range(0, 30000, l_chunks)]
+
+    if len(chunks) > n_cpu:
+        chunks[-2] += chunks[-1]
+        del chunks[-1]
+    
+    # add the passwords from passwords1
+    print("ADDING the passwords to the filter")
+    # create jobs
+    for chunk in chunks:
+        jobs.append( pool.apply_async(add,(BF, chunk)) )
+
+    # wait for all jobs to finish
+    for job in jobs:
+        BF.array += job.get()  # add the result to the final array
+
+    BF.array = (BF.array > 0).astype(int)  # convert the values of the array in 0 and 1 's
+
+    # clean up the pool
+    pool.close()
+    print("FINISHED adding passwords\n")
+
+    duplicates = 0
+    # check the passwords in passwords2
+    l_chunks = len(passwords2) // n_cpu
+    chunks = [passwords2[i:i + l_chunks] for i in range(0, len(passwords2), l_chunks)]
+
+    if len(chunks) > n_cpu:
+        chunks[-2] += chunks[-1]
+        del chunks[-1]
+    
+    print("CHECKING duplicates")
+    # create jobs
+    for chunk in chunks:
+        jobs.append( pool.apply_async(check,(BF, chunk)) )
+    # wait for all jobs to finish
+    for job in jobs:
+        duplicates += job.get()
+
+    # clean up the pool
+    pool.close()
+    
+    end = time.time()
+    
+    # return the list of duplicates for eventually saving them in a file
+    return (duplicates, int(end-start))
 
 
 ################ Multiprocessing section ####################
@@ -216,30 +304,32 @@ if __name__ == "__main__":
     passwords1_path = r"data/passwords/passwords1.txt"
     passwords2_path = r"data/passwords/passwords2.txt"
 
-    # print("Reading passwords1")
-    # with open(p1_test, 'r') as f:
-    #     passwords1 = f.read().splitlines()
+    print("Reading passwords1")
+    with open(passwords1_path, 'r') as f:
+        passwords1 = f.read().splitlines()
 
-    # print("Reading passwords2")
-    # with open(p2_test, 'r') as f:
-    #     passwords2 = f.read().splitlines()
+    print("Reading passwords2")
+    with open(passwords2_path, 'r') as f:
+        passwords2 = f.read().splitlines()
 
     # Initializing the Bloom filter
     print("Initializing Bloom filter\n")
     n = 100000000
-    BF = BloomFilter(n, 0.00001, 11)
+    BF = BloomFilter(n, 0.001, 9)
     BF.describe()
     print('\n')
 
     # duplicates = exec_bloom_filter(BF, passwords1, passwords2)
 
-    start = time.time()
-    print("ADD process started")
-    multiprocess_add(BF, passwords1_path)
-    print("\nCHECK process started")
-    duplicates = multiprocess_check(BF, passwords2_path)
-    end = time.time()
-    seconds = int(end-start)
+    # start = time.time()
+    # print("ADD process started")
+    # multiprocess_add(BF, passwords1_path)
+    # print("\nCHECK process started")
+    # duplicates = multiprocess_check(BF, passwords2_path)
+    # end = time.time()
+    # seconds = int(end-start)
+
+    (duplicates, seconds) = exec_bloom_filter(BF, passwords1[:30000], passwords2[:10000])
 
     print('\nNumber of hash function used: ', BF.hash_count) 
     print('Number of duplicates detected: ', duplicates) 
