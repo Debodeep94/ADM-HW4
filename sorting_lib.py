@@ -154,10 +154,7 @@ if __name__ == "__main__":
     # print(*lst)
     # print(*ordered_alpha)
 
-    l1 = ['paolo', 'lorenzo', 'emanu ele', 'emanu ela', 'paolo', 'paol']
-    l = ['a', 'ab', 'a', 'cd', 'cc']
-    es1 = ['As', 'Aster', 'Astrolabe', 'Astronomy', 'Astrophysics', 'At', 'Ataman', 'Attack', 'Baa']
-    es2 = ['gtyGpm', 'xulrMj', 'YmPnVb', 'lTp Vlh', 'eJCnwD', 'esZbhw', 'MtCMJH', 'rkClQP', 'dPbCuh', 'gfKxzk', 'cvBxcy', 'vxEoKk', 'Tdzpcn', 'ymwDWn', 'vHEyvc', 'JeihfT']
+    es2 = ['gtyGpm', 'xuldsarMj', 'YmPfdsfsdnVb', 'lTp Vlh', 'eJCnadawdawdwD', 'esZbhw', 'MtCMJH', 'rkClQP', 'dPbadadawd2uh', 'ggdnocfKxzk', 'cvBxcy', 'vxEoKk', 'Tdzpcn', 'ymwDWn', 'vHEyvc', 'JeihfT']
     ordered_strings = rec_alphabetical_sort(es2, 0)
     print(*es2)
     print(*ordered_strings)

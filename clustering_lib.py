@@ -1,19 +1,11 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[ ]:
-
-
 import pandas as pd
 import numpy as np
 import math
 import matplotlib.pyplot as plt
 import random
-get_ipython().run_line_magic('matplotlib', 'inline')
-
-
-# In[ ]:
-
 
 
 def kmeans(data):
